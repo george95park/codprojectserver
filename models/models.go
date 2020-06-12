@@ -15,3 +15,13 @@ type Credentials struct {
 type User struct {
 	Username string `json:"username", db:"username"`
 }
+
+type Token struct {
+	Token string `json:"token", db:"token"`
+}
+
+type Response struct {
+	Message string `json:"message,omitempty"`
+	Username string `json:"username",omitempty`
+	LoggedIn bool `json:"loggedin,omitempty"`
+}
