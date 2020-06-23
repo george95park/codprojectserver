@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"fmt"
-	"strconv"
 	"net/http"
 	"encoding/json"
 	"github.com/lib/pq"
@@ -55,11 +54,7 @@ func GetLoadouts(w http.ResponseWriter, r *http.Request) {
 	}
 	db := config.ConnectDB()
 	defer db.Close()
-	currUserId,err := strconv.Atoi(mux.Vars(r)["id"])
-	if err != nil {
-		panic(err)
-	}
-
+	currUserId := mux.Vars(r)["id"]
 
 	// Get the rows according to user
 	rows,err := db.Query("select * from loadouts where user_id=$1",currUserId)
