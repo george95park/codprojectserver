@@ -58,6 +58,9 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	})
 	res := models.Response{}
 	err = db.QueryRow("select user_id from credentials where username = $1", creds.Username).Scan(&res.User_Id)
+	if err != nil {
+		panic(err)
+	}
 	res.Message = "success"
 	res.Username = creds.Username
 	res.Logged_In = true
@@ -90,15 +93,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	// query database for the password with username in request body
 	storedCreds := &models.Credentials{}
-	passFromDB := db.QueryRow("select password,user_id from credentials where username = $1", creds.Username).Scan(&storedCreds.Password, &storedCreds.User_Id)
+	err := db.QueryRow("select password,user_id from credentials where username = $1", creds.Username).Scan(&storedCreds.Password, &storedCreds.User_Id)
 	switch {
-		case passFromDB == sql.ErrNoRows:
+	case err == sql.ErrNoRows:
 			fmt.Println("No user with the username: %d\n", creds.Username)
 			// return 401 status
 			w.WriteHeader(http.StatusUnauthorized)
 			return
-		case passFromDB != nil:
-			fmt.Println("Query error: %v\n", passFromDB)
+		case err != nil:
+			fmt.Println("Query error: %v\n", err)
 			// return 500 status
 			w.WriteHeader(http.StatusInternalServerError)
 			return

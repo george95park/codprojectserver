@@ -3,6 +3,8 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"database/sql"
 	"encoding/json"
 	"github.com/lib/pq"
 	"github.com/gorilla/mux"
@@ -54,25 +56,13 @@ func GetLoadouts(w http.ResponseWriter, r *http.Request) {
 	}
 	db := config.ConnectDB()
 	defer db.Close()
-	currUserId := mux.Vars(r)["id"]
-
-	// Get the rows according to user
-	rows,err := db.Query("select * from loadouts where user_id=$1",currUserId)
+	currUserId, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		panic(err)
 	}
+	// get user loadouts
+	userLoadouts := getUserLoadouts(db, currUserId)
 
-	// For each row, create new loadout object and append to the result
-	userLoadouts := []models.Loadout{}
-	for rows.Next() {
-		l := models.Loadout{}
-		err = rows.Scan(&l.Loadout_Id, &l.User_Id, &l.Type, &l.Gun, pq.Array(&l.Attachments), pq.Array(&l.SubAttachments), &l.Description)
-		if err != nil {
-			panic(err)
-		}
-		userLoadouts = append(userLoadouts, l)
-	}
-	fmt.Println("Received loadouts.")
 
 	// return response
 	json.NewEncoder(w).Encode(userLoadouts)
@@ -92,7 +82,8 @@ func DeleteLoadout(w http.ResponseWriter, r *http.Request) {
 	db := config.ConnectDB()
 	defer db.Close()
 	currLoadoutId := mux.Vars(r)["id"]
-
+	var currUserId int
+	err := db.QueryRow("select user_id from loadouts where loadout_id=$1", currLoadoutId).Scan(&currUserId)
 	res,err := db.Exec("delete from loadouts where loadout_id=$1", currLoadoutId)
 	if err != nil {
 		fmt.Println(err)
@@ -105,7 +96,12 @@ func DeleteLoadout(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Println("Total rows affected: %v", rowsAffected)
-	json.NewEncoder(w).Encode(rowsAffected)
+
+	// get user loadouts after delete
+	userLoadouts := getUserLoadouts(db, currUserId)
+
+	// return response
+	json.NewEncoder(w).Encode(userLoadouts)
 }
 
 func UpdateLoadout(w http.ResponseWriter, r *http.Request) {
@@ -142,5 +138,31 @@ func UpdateLoadout(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Println("Total rows affected: %v", rowsAffected)
-	json.NewEncoder(w).Encode(load)
+
+	// get user loadouts after update
+	userLoadouts := getUserLoadouts(db, load.User_Id)
+
+	// return response
+	json.NewEncoder(w).Encode(userLoadouts)
+}
+
+func getUserLoadouts(db *sql.DB, userid int) []models.Loadout {
+	// Get the rows according to user
+	rows,err := db.Query("select * from loadouts where user_id=$1",userid)
+	if err != nil {
+		panic(err)
+	}
+
+	// For each row, create new loadout object and append to the result
+	res := []models.Loadout{}
+	for rows.Next() {
+		l := models.Loadout{}
+		err = rows.Scan(&l.Loadout_Id, &l.User_Id, &l.Type, &l.Gun, pq.Array(&l.Attachments), pq.Array(&l.SubAttachments), &l.Description)
+		if err != nil {
+			panic(err)
+		}
+		res = append(res, l)
+	}
+	fmt.Println("Received loadouts.")
+	return res
 }
