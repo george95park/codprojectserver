@@ -82,8 +82,6 @@ func DeleteLoadout(w http.ResponseWriter, r *http.Request) {
 	db := config.ConnectDB()
 	defer db.Close()
 	currLoadoutId := mux.Vars(r)["id"]
-	var currUserId int
-	err := db.QueryRow("select user_id from loadouts where loadout_id=$1", currLoadoutId).Scan(&currUserId)
 	res,err := db.Exec("delete from loadouts where loadout_id=$1", currLoadoutId)
 	if err != nil {
 		fmt.Println(err)
@@ -96,12 +94,10 @@ func DeleteLoadout(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Println("Total rows affected: %v", rowsAffected)
-
-	// get user loadouts after delete
-	userLoadouts := getUserLoadouts(db, currUserId)
+	response := models.Response{ Message: "deleted", Loadout_Id: currLoadoutId}
 
 	// return response
-	json.NewEncoder(w).Encode(userLoadouts)
+	json.NewEncoder(w).Encode(response)
 }
 
 func UpdateLoadout(w http.ResponseWriter, r *http.Request) {
@@ -138,12 +134,8 @@ func UpdateLoadout(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Println("Total rows affected: %v", rowsAffected)
-
-	// get user loadouts after update
-	userLoadouts := getUserLoadouts(db, load.User_Id)
-
 	// return response
-	json.NewEncoder(w).Encode(userLoadouts)
+	json.NewEncoder(w).Encode(load)
 }
 
 func getUserLoadouts(db *sql.DB, userid int) []models.Loadout {

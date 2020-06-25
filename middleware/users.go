@@ -25,9 +25,9 @@ func GetAllUsers(w http.ResponseWriter, r * http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	res := []models.Response{}
+	res := []models.User{}
 	for rows.Next() {
-		r := models.Response{}
+		r := models.User{}
 		err = rows.Scan(&r.User_Id, &r.Username)
 		if err != nil {
 			panic(err)
