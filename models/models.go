@@ -40,6 +40,5 @@ type Response struct {
 	Message string `json:"message,omitempty"`
 	Username string `json:"username",omitempty`
 	User_Id int `json:"user_id",omitempty`
-	Loadout_Id string `json:"loadout_id",omitempty`
 	Logged_In bool `json:"logged_in,omitempty"`
 }

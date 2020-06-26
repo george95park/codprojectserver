@@ -94,10 +94,8 @@ func DeleteLoadout(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Println("Total rows affected: %v", rowsAffected)
-	response := models.Response{ Message: "deleted", Loadout_Id: currLoadoutId}
-
 	// return response
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(currLoadoutId)
 }
 
 func UpdateLoadout(w http.ResponseWriter, r *http.Request) {

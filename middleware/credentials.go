@@ -1,15 +1,17 @@
 package middleware
 
 import (
+	"os"
 	"fmt"
 	"time"
 	"net/http"
 	"database/sql"
 	"encoding/json"
-	"github.com/satori/go.uuid"
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 	"codproject/server/models"
 	"codproject/server/config"
+	"github.com/dgrijalva/jwt-go"
 )
 
 // Sign-up handler
@@ -40,30 +42,35 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	// create new uuid for cookie
-	sessionToken := uuid.Must(uuid.NewV4()).String()
 
 	// insert into credentials table and check for error
-	_,err = db.Query("insert into credentials (username, password, token) values ($1, $2, $3)",creds.Username,string(hashedPassword),sessionToken)
+	_,err = db.Query("insert into credentials (username, password, token) values ($1, $2, $3)",creds.Username,string(hashedPassword),"")
 	if err != nil {
 		fmt.Println(err)
 		// return 500 status
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	http.SetCookie(w, &http.Cookie {
-		Name: "session_token",
-		Value: sessionToken,
-		Expires: time.Now().Add(365 * 24 * time.Hour),
-	})
-	res := models.Response{}
-	err = db.QueryRow("select user_id from credentials where username = $1", creds.Username).Scan(&res.User_Id)
+
+	// jwt token
+	token,user_id := createToken(creds.Username, db)
+	_,err = db.Exec("update credentials set token=$1 where user_id=$2", token, user_id)
 	if err != nil {
 		panic(err)
 	}
-	res.Message = "success"
-	res.Username = creds.Username
-	res.Logged_In = true
+
+	http.SetCookie(w, &http.Cookie {
+		Name: "token",
+		Value: token,
+		Expires: time.Now().Add(365 * 24 * time.Hour),
+		//HttpOnly: true,
+	})
+	res := models.Response{
+		Message: "success",
+		Username: creds.Username,
+		User_Id: user_id,
+		Logged_In: true,
+	}
 	json.NewEncoder(w).Encode(res)
 }
 // Login handler
@@ -92,10 +99,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// query database for the password with username in request body
-	storedCreds := &models.Credentials{}
-	err := db.QueryRow("select password,user_id from credentials where username = $1", creds.Username).Scan(&storedCreds.Password, &storedCreds.User_Id)
+	var storedPassword string
+	err := db.QueryRow("select password from credentials where username = $1", creds.Username).Scan(&storedPassword)
 	switch {
-	case err == sql.ErrNoRows:
+		case err == sql.ErrNoRows:
 			fmt.Println("No user with the username: %d\n", creds.Username)
 			// return 401 status
 			w.WriteHeader(http.StatusUnauthorized)
@@ -106,16 +113,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		default:
-			if err := bcrypt.CompareHashAndPassword([]byte(storedCreds.Password), []byte(creds.Password)); err != nil {
+			if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(creds.Password)); err != nil {
 				fmt.Println("Access Denied: Wrong Password.")
 				// return 401 status
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			} else {
 				fmt.Println("Access granted.")
-				// update session token in tokens table
-				sessionToken := uuid.Must(uuid.NewV4()).String()
-				_, err := db.Query("update credentials set token=$1 where username=$2", sessionToken, creds.Username)
+				token, user_id := createToken(creds.Username, db)
+				_, err := db.Exec("update credentials set token=$1 where user_id=$2", token, user_id)
 				if err != nil {
 					fmt.Println(err)
 
@@ -124,14 +130,15 @@ func Login(w http.ResponseWriter, r *http.Request) {
 					return
 				}
 				http.SetCookie(w, &http.Cookie {
-					Name: "session_token",
-					Value: sessionToken,
+					Name: "token",
+					Value: token,
 					Expires: time.Now().Add(365 * 24 * time.Hour),
+					//HttpOnly: true,
 				})
 				res := models.Response {
 					Message: "success",
 					Username: creds.Username,
-					User_Id: storedCreds.User_Id,
+					User_Id: user_id,
 					Logged_In: true,
 				}
 				json.NewEncoder(w).Encode(res)
@@ -162,16 +169,16 @@ func GetSessionTokenUser(w http.ResponseWriter, r *http.Request) {
 	}
 	res := models.Response{}
 	// get the username related to token
-	userFromDB := db.QueryRow("select user_id,username from credentials where token=$1", creds.Token).Scan(&res.User_Id, &res.Username)
+	err := db.QueryRow("select user_id,username from credentials where token=$1", creds.Token).Scan(&res.User_Id, &res.Username)
 	switch {
 		// if there were no user with this token
-		case userFromDB == sql.ErrNoRows:
+		case err == sql.ErrNoRows:
 			fmt.Println("No user with the token: %d\n", creds.Token)
 			// return 401 status
 			w.WriteHeader(http.StatusUnauthorized)
 			return
-		case userFromDB != nil:
-			fmt.Println("Query error: %v\n", userFromDB)
+		case err != nil:
+			fmt.Println("Query error: %v\n", err)
 			// return 500 status
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -180,4 +187,37 @@ func GetSessionTokenUser(w http.ResponseWriter, r *http.Request) {
 			res.Message = "success"
 			json.NewEncoder(w).Encode(res)
 	}
+}
+
+func createToken(username string, db *sql.DB) (string, int) {
+	var user_id int
+	if err := db.QueryRow("select user_id from credentials where username = $1", username).Scan(&user_id); err != nil {
+		panic(err)
+	}
+	type Claims struct {
+		Username string `json:"username"`
+		User_Id int `json:"user_id"`
+		jwt.StandardClaims
+	}
+	claims := Claims{
+		username,
+		user_id,
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(365 * 24 * time.Hour).Unix(),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString(getSecretKey())
+	if err != nil {
+		panic(err)
+	}
+	return ss, user_id
+}
+
+func getSecretKey() ([]byte) {
+	if err := godotenv.Load(".env"); err != nil {
+		panic(err)
+	}
+	key := []byte(os.Getenv("SECRET_KEY"))
+	return key
 }
