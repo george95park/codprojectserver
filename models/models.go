@@ -1,5 +1,6 @@
 package models
 
+import "github.com/dgrijalva/jwt-go"
 
 type Gun struct {
 	Gun_Id int `json:"gun_id", db:"gun_id"`
@@ -34,11 +35,11 @@ type Loadout struct {
 type User struct {
 	Username string `json:"username", db:"username"`
 	User_Id int `json:"user_id", db:"user_id"`
+	Logged_In bool `json:"logged_in"`
 }
 
-type Response struct {
-	Message string `json:"message,omitempty"`
-	Username string `json:"username",omitempty`
-	User_Id int `json:"user_id",omitempty`
-	Logged_In bool `json:"logged_in,omitempty"`
+type Claims struct {
+	Username string `json:"username"`
+	User_Id int `json:"user_id"`
+	jwt.StandardClaims
 }

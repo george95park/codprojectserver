@@ -63,15 +63,15 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		Name: "token",
 		Value: token,
 		Expires: time.Now().Add(365 * 24 * time.Hour),
-		//HttpOnly: true,
+		HttpOnly: true,
+		//Secure: true,
 	})
-	res := models.Response{
-		Message: "success",
+	user := models.User{
 		Username: creds.Username,
 		User_Id: user_id,
 		Logged_In: true,
 	}
-	json.NewEncoder(w).Encode(res)
+	json.NewEncoder(w).Encode(user)
 }
 // Login handler
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -133,24 +133,45 @@ func Login(w http.ResponseWriter, r *http.Request) {
 					Name: "token",
 					Value: token,
 					Expires: time.Now().Add(365 * 24 * time.Hour),
-					//HttpOnly: true,
+					HttpOnly: true,
+					//Secure: true,
 				})
-				res := models.Response {
-					Message: "success",
+				user := models.User {
 					Username: creds.Username,
 					User_Id: user_id,
 					Logged_In: true,
 				}
-				json.NewEncoder(w).Encode(res)
+				json.NewEncoder(w).Encode(user)
 			}
 	}
+}
+func Logout(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	http.SetCookie(w, &http.Cookie {
+		Name: "token",
+		Value: "",
+		Expires: time.Now(),
+		HttpOnly: true,
+		//Secure: true,
+	})
+	fmt.Println("Logged out")
 }
 
 func GetSessionTokenUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "POST")
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	// handles preflight request before the actual request
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -159,34 +180,38 @@ func GetSessionTokenUser(w http.ResponseWriter, r *http.Request) {
 	// open database
 	db := config.ConnectDB()
 	defer db.Close()
-	creds := &models.Credentials{}
-	// decode request body and check for error
-	if err := json.NewDecoder(r.Body).Decode(creds); err != nil {
-		fmt.Println(err)
-		// return a 400 status
+	c, err := r.Cookie("token")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	res := models.Response{}
-	// get the username related to token
-	err := db.QueryRow("select user_id,username from credentials where token=$1", creds.Token).Scan(&res.User_Id, &res.Username)
-	switch {
-		// if there were no user with this token
-		case err == sql.ErrNoRows:
-			fmt.Println("No user with the token: %d\n", creds.Token)
-			// return 401 status
+	tokenStr := c.Value
+	claims := &models.Claims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token * jwt.Token) (interface{}, error) {
+		return getSecretKey(), nil
+	})
+	if err != nil {
+		if err == jwt.ErrSignatureInvalid {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
-		case err != nil:
-			fmt.Println("Query error: %v\n", err)
-			// return 500 status
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		default:
-			res.Logged_In = true
-			res.Message = "success"
-			json.NewEncoder(w).Encode(res)
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
+	if !token.Valid {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	user := models.User{
+		Username: claims.Username,
+		User_Id: claims.User_Id,
+		Logged_In: true,
+	}
+	json.NewEncoder(w).Encode(user)
 }
 
 func createToken(username string, db *sql.DB) (string, int) {
@@ -194,12 +219,7 @@ func createToken(username string, db *sql.DB) (string, int) {
 	if err := db.QueryRow("select user_id from credentials where username = $1", username).Scan(&user_id); err != nil {
 		panic(err)
 	}
-	type Claims struct {
-		Username string `json:"username"`
-		User_Id int `json:"user_id"`
-		jwt.StandardClaims
-	}
-	claims := Claims{
+	claims := models.Claims{
 		username,
 		user_id,
 		jwt.StandardClaims{

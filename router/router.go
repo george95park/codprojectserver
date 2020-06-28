@@ -8,6 +8,7 @@ import (
 func Router() *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/login", middleware.Login)
+	router.HandleFunc("/logout", middleware.Logout)
 	router.HandleFunc("/signup", middleware.Signup)
 	router.HandleFunc("/createloadout", middleware.CreateLoadout)
 	router.HandleFunc("/getloadouts/{id}", middleware.GetLoadouts)
