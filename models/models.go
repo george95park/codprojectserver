@@ -43,3 +43,9 @@ type Claims struct {
 	User_Id int `json:"user_id"`
 	jwt.StandardClaims
 }
+
+type Error struct {
+	Status string `json:"status"`
+	Text string `json:"text"`
+	Message string `json:"message"`
+}

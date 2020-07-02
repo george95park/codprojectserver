@@ -36,6 +36,12 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		// return a 400 status
 		w.WriteHeader(http.StatusBadRequest)
+		res := models.Error {
+			Status: "400",
+			Text: "Status Bad Request",
+			Message: "Bad request",
+		}
+		json.NewEncoder(w).Encode(res)
 		return
 	}
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(creds.Password), 8)
@@ -49,6 +55,12 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		// return 500 status
 		w.WriteHeader(http.StatusInternalServerError)
+		res := models.Error {
+			Status: "500",
+			Text: "Status Internal Server Error",
+			Message: "Username already taken",
+		}
+		json.NewEncoder(w).Encode(res)
 		return
 	}
 
@@ -95,6 +107,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err)
 		// return a 400 status
 		w.WriteHeader(http.StatusBadRequest)
+		res := models.Error {
+			Status: "400",
+			Text: "Status Bad Request",
+			Message: "Bad request",
+		}
+		json.NewEncoder(w).Encode(res)
 		return
 	}
 
@@ -106,17 +124,35 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("No user with the username: %d\n", creds.Username)
 			// return 401 status
 			w.WriteHeader(http.StatusUnauthorized)
+			res := models.Error {
+				Status: "401",
+				Text: "Status Unauthorized",
+				Message: "No user with this username",
+			}
+			json.NewEncoder(w).Encode(res)
 			return
 		case err != nil:
 			fmt.Println("Query error: %v\n", err)
 			// return 500 status
 			w.WriteHeader(http.StatusInternalServerError)
+			res := models.Error {
+				Status: "500",
+				Text: "Status Internal Server Error",
+				Message: "Internal server error",
+			}
+			json.NewEncoder(w).Encode(res)
 			return
 		default:
 			if err := bcrypt.CompareHashAndPassword([]byte(storedPassword), []byte(creds.Password)); err != nil {
 				fmt.Println("Access Denied: Wrong Password.")
 				// return 401 status
 				w.WriteHeader(http.StatusUnauthorized)
+				res := models.Error {
+					Status: "401",
+					Text: "Status Unauthorized",
+					Message: "Wrong password",
+				}
+				json.NewEncoder(w).Encode(res)
 				return
 			} else {
 				fmt.Println("Access granted.")
@@ -127,6 +163,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 					// return 500 status
 					w.WriteHeader(http.StatusInternalServerError)
+					res := models.Error {
+						Status: "500",
+						Text: "Status Internal Server Error",
+						Message: "Internal server error",
+					}
+					json.NewEncoder(w).Encode(res)
 					return
 				}
 				http.SetCookie(w, &http.Cookie {
@@ -183,10 +225,21 @@ func GetSessionTokenUser(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("token")
 	if err != nil {
 		if err == http.ErrNoCookie {
-			w.WriteHeader(http.StatusUnauthorized)
+			user := models.User{
+				Username: "",
+				User_Id: -1,
+				Logged_In: false,
+			}
+			json.NewEncoder(w).Encode(user)
 			return
 		}
 		w.WriteHeader(http.StatusBadRequest)
+		res := models.Error {
+			Status: "400",
+			Text: "Status Bad Request",
+			Message: "Bad request",
+		}
+		json.NewEncoder(w).Encode(res)
 		return
 	}
 	tokenStr := c.Value
@@ -197,13 +250,31 @@ func GetSessionTokenUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if err == jwt.ErrSignatureInvalid {
 			w.WriteHeader(http.StatusUnauthorized)
+			res := models.Error {
+				Status: "401",
+				Text: "Status Unauthorized",
+				Message: "Invalid",
+			}
+			json.NewEncoder(w).Encode(res)
 			return
 		}
 		w.WriteHeader(http.StatusBadRequest)
+		res := models.Error {
+			Status: "400",
+			Text: "Status Bad Request",
+			Message: "Bad request",
+		}
+		json.NewEncoder(w).Encode(res)
 		return
 	}
 	if !token.Valid {
 		w.WriteHeader(http.StatusUnauthorized)
+		res := models.Error {
+			Status: "401",
+			Text: "Status Unauthorized",
+			Message: "Invalid",
+		}
+		json.NewEncoder(w).Encode(res)
 		return
 	}
 	user := models.User{

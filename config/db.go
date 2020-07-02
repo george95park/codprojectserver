@@ -49,7 +49,7 @@ func CreateTables() {
 	`CREATE TABLE IF NOT EXISTS credentials (
 		user_id SERIAL PRIMARY KEY,
 		password TEXT,
-		username TEXT,
+		username TEXT UNIQUE,
 		token TEXT
 	)`
 	const loadoutsSchema =
