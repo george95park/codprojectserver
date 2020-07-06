@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"github.com/lib/pq"
 	"codproject/server/models"
-	"codproject/server/config"
+	"codproject/server/lib"
 )
 
 func GetGuns(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +18,7 @@ func GetGuns(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 
 	g := &models.Gun{}
@@ -56,7 +56,7 @@ func GetAttachments(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 
 	a := &models.Attachment{}

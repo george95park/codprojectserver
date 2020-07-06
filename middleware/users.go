@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"codproject/server/models"
-	"codproject/server/config"
+	"codproject/server/lib"
 )
 
 
@@ -18,7 +18,7 @@ func GetAllUsers(w http.ResponseWriter, r * http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 
 	rows,err := db.Query("select user_id, username from credentials")

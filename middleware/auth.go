@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"encoding/json"
 	"codproject/server/models"
-	"codproject/server/config"
     "codproject/server/lib"
 	"github.com/dgrijalva/jwt-go"
 )
@@ -21,7 +20,7 @@ func GetSessionTokenUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// open database
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 	c, err := r.Cookie("token")
 	if err != nil {

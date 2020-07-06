@@ -9,7 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/gorilla/mux"
 	"codproject/server/models"
-	"codproject/server/config"
+	"codproject/server/lib"
 )
 
 // creates loadout in database
@@ -22,7 +22,7 @@ func CreateLoadout(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 	load := &models.Loadout{}
 	// Unmarshall request body
@@ -54,7 +54,7 @@ func GetLoadouts(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 	currUserId, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -79,7 +79,7 @@ func DeleteLoadout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// open database
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 	currLoadoutId := mux.Vars(r)["id"]
 	res,err := db.Exec("delete from loadouts where loadout_id=$1", currLoadoutId)
@@ -108,7 +108,7 @@ func UpdateLoadout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// open database
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 	load := &models.Loadout{}
 	if err := json.NewDecoder(r.Body).Decode(load); err != nil {

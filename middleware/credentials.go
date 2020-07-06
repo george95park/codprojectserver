@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"golang.org/x/crypto/bcrypt"
 	"codproject/server/models"
-	"codproject/server/config"
 	"codproject/server/lib"
 )
 
@@ -25,7 +24,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// open database
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 	creds := &models.Credentials{}
 
@@ -97,7 +96,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// open database
-	db := config.ConnectDB()
+	db := lib.ConnectDB()
 	defer db.Close()
 	creds := &models.Credentials{}
 	// decode request body and check for error
