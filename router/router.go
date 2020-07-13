@@ -14,7 +14,7 @@ func Router() *mux.Router {
 	router.HandleFunc("/getloadouts/{id}", middleware.GetLoadouts)
 	router.HandleFunc("/deleteloadout/{id}", middleware.DeleteLoadout)
 	router.HandleFunc("/updateloadout", middleware.UpdateLoadout)
-	router.HandleFunc("/getsessiontokenuser", middleware.GetSessionTokenUser)
+	router.HandleFunc("/authuser", middleware.AuthUser)
 	router.HandleFunc("/getguns", middleware.GetGuns)
 	router.HandleFunc("/getattachments", middleware.GetAttachments)
 	router.HandleFunc("/getallusers", middleware.GetAllUsers)

@@ -124,7 +124,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			res := models.Error {
 				Status: "401",
 				Text: "Status Unauthorized",
-				Message: "No user with this username",
+				Message: "Wrong username or password.",
 			}
 			json.NewEncoder(w).Encode(res)
 			return
@@ -147,7 +147,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 				res := models.Error {
 					Status: "401",
 					Text: "Status Unauthorized",
-					Message: "Wrong password",
+					Message: "Wrong username or password",
 				}
 				json.NewEncoder(w).Encode(res)
 				return

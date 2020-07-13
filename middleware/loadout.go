@@ -16,7 +16,7 @@ import (
 func CreateLoadout(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET")
+	w.Header().Set("Access-Control-Allow-Methods", "POST")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -82,6 +82,7 @@ func DeleteLoadout(w http.ResponseWriter, r *http.Request) {
 	db := lib.ConnectDB()
 	defer db.Close()
 	currLoadoutId := mux.Vars(r)["id"]
+	fmt.Println(currLoadoutId)
 	res,err := db.Exec("delete from loadouts where loadout_id=$1", currLoadoutId)
 	if err != nil {
 		fmt.Println(err)
