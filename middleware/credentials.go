@@ -73,7 +73,7 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		Value: token,
 		Expires: time.Now().Add(365 * 24 * time.Hour),
 		HttpOnly: true,
-		SameSite: 3,
+		SameSite: 4,
 		//Secure: true,
 	})
 	user := models.User{
@@ -174,7 +174,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 					Value: token,
 					Expires: time.Now().Add(365 * 24 * time.Hour),
 					HttpOnly: true,
-					SameSite: 3,
+					SameSite: 4,
 					//Secure: true,
 				})
 				user := models.User {
