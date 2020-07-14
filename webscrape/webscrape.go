@@ -1,6 +1,6 @@
 // Webscrape for COD: Modern Warfare guns and attachments
 // From: https://callofduty.fandom.com/wiki/Call_of_Duty:_Modern_Warfare_(2019)
-package webscrape
+package main
 
 import (
     "os"
