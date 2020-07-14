@@ -11,7 +11,7 @@ import (
 
 func GetAllUsers(w http.ResponseWriter, r * http.Request) {
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
-	w.Header().Set("Access-Control-Allow-Origin", "codloadish.com")
+	w.Header().Set("Access-Control-Allow-Origin", "http://codloadish.com")
 	w.Header().Set("Access-Control-Allow-Methods", "GET")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	if r.Method == "OPTIONS" {
